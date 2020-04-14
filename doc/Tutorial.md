@@ -162,9 +162,13 @@ rm: remove symbolic link '/home/mike/xx'? y
 
 ### What is `gcc`?
 GCC is the GNU Compiler Collection. It includes compilers for
-many languages. `gcc` is the C compiler, `g++` the C++ compiler.
+many languages.
+
+`gcc` also refers to the C compiler in the GNU Compiler
+collection. Similarly, `g++` is the C++ compiler.
 
 GCC handles compiling:
+
 - preprocess to a single, expanded source file
 - translate to an assembly file
 
