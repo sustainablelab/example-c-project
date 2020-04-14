@@ -68,10 +68,9 @@ The executable is OK if `a.out` runs silently.
 
 #### `cc` is a symbolic link to `gcc`
 
-- `cc` is a *symbolic link* to `gcc.exe`
-    - see <https://www.computerhope.com/unix/ucc.htm>
+- see <https://www.computerhope.com/unix/ucc.htm>
 
-Now I show this.
+#### Symbolic link demonstration
 
 `cc` is a C compiler, but which one?
 
