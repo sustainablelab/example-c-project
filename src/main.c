@@ -1,9 +1,8 @@
 #include <stdio.h>
-
-extern int util(int);
+#include "util.h"
 
 int main(int argc, char **argv)
 {
-    printf("Hi.");
-    return util(argc);
+    printf("nargs: %d\n", util(argc));
+    return 0;
 }
