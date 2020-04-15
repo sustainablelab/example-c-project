@@ -22,6 +22,19 @@ Barry's talk is followed by talks on:
 - testing: <https://www.youtube.com/watch?v=5AXbH43OSJo&list=PLGj2a3KTwhRaaztWIiUwKGSDKDFpwwxyR&index=5>
 - refactoring: <https://www.youtube.com/watch?v=YXcEa-M7EBM&list=PLGj2a3KTwhRaaztWIiUwKGSDKDFpwwxyR&index=6>
 
+# Also see the GNU Make manual
+
+- Manual in multiple formats:
+- <https://www.gnu.org/software/make/manual/>
+
+- HTML table of contents:
+- <https://www.gnu.org/software/make/manual/html_node/index.html>
+
+Specific manual sections I referred to while writing this:
+
+- 3.3 Including Other Makefiles
+- <https://www.gnu.org/software/make/manual/html_node/Include.html#Include>
+
 # 1 - Build from a single source file
 ## First folder structure
 
