@@ -926,5 +926,42 @@ build/%.o: src/%.c
 	cc -c -o $@ $<
 
 build/util.o: src/util.h
-
 ```
+
+## Fourth Makefile
+
+Create a tags file.
+
+```make
+build/exe: build/main.o build/util.o
+	cc -o build/exe build/main.o build/util.o
+
+build/%.o: src/%.c
+	cc -c -o $@ $<
+
+build/util.o: src/util.h
+
+ctags:
+	ctags --c-kinds=+l --exclude=Makefile -R .
+```
+
+Install `ctags` with the Cygwin package manager.
+
+By default, `ctags` outputs a tags file named `tags`.
+
+By default, the Vim `tag` command looks for `./tags,tags`. Check
+this with `:set tags`.
+
+This tags file is only for C symbols in the project. For example,
+there is a tag for `main`, but no tag for `printf`.
+
+I remedy this later. I show a recipe using `gcc` with the `-M`
+flag to determine the header dependencies for generating a list
+of header prerequisites.
+
+Using this same `-M` flag, I generate a file that lists library
+dependencies, such as `stdio`, and use ctags flag `-L` to read
+this file. I output this as a `lib-tags` file, a special tags
+file just for library dependencies. I append `lib-tags` to the Vim
+`tags` search path, giving search precedence to the project
+`tags` file first.
