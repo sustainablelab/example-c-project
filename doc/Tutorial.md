@@ -101,6 +101,26 @@ $ ls -l /usr/bin/cc
 lrwxrwxrwx 1 lily None 7 Mar 31 13:41 /usr/bin/cc -> gcc.exe
 ```
 
+*Tip:*
+
+- if the path is long, instead of retyping it, `ls` the output of
+  `whereis cc` like this `ls $(whereis cc)`
+- `ls` does not know to ignore the first part of this output, `cc:`, so 
+  pipe the output of `whereis` to `sed` to filter the `cc:`
+  before passing to `ls`
+- generalize this `whereis` output-filter using the regex pattern
+  `^.*:`
+    - from the beginning of the line (`^`)
+    - all characters (`.*`)
+    - up to the occurrence of the colon
+
+So list `cc` with `ls -l` like this:
+
+```bash
+$ ls -l $(whereis cc | sed 's/^.*://')
+lrwxrwxrwx 1 lily None 7 Feb  8 10:14 /usr/bin/cc -> gcc.exe
+```
+
 The important part is at the end of the line:
 
 ```bash
@@ -272,6 +292,9 @@ Hi.
 
 Programs are *never* a single file.
 
+Add a dependency by adding function `util` that is defined in
+another file.
+
 ```c
 #include <stdio.h>
 
@@ -284,29 +307,31 @@ int main(int argc, char **argv)
 }
 ```
 
-### extern
+There are several concepts to understand before proceeding. If
+the function declaration for `util` makes sense, skip ahead to
+*Build with dependency*.
 
-`extern` is a C keyword. In this context, it says:
-
-- I use `util` in this file
-- function `util` is defined in another file
-
-The `extern` statement tells the compiler the argument data types
-and return value type for `util`. This is everything the compiler
-needs to know to generate the placeholder in the `main.o` object
-file.
+### function dependencies
 
 *Calling functions defined in other source files is normally
-handled using header files. I will get there. For now, this
-`extern` statement is a shortcut to making a dependency.*
+handled using header files.*
 
-And actually the `extern` keyword isn't even necessary for the
-compiler. All functions are `extern`. The `extern` is for human
-readers. All that's necessary is the function signature:
+The **header file** is a *single source of truth* for function
+signatures. If a caller:
 
-```c
-int util(int input);
-```
+- uses the wrong datatype for a return value
+- uses the wrong datatype for an argument
+- has missing or extra arguments
+
+Then the mismatch is caught *when compiling* rather than waiting
+until the linking step.
+
+For now, the function declaration for `util` in `main.c` is a
+shortcut to create a dependency for experimenting with `make`.
+
+### building object files vs linking object files
+
+The file defining `util` is not necessary to build `main.o`.
 
 The compiler does all of the steps to make object file `main.o`.
 The steps are:
@@ -333,6 +358,42 @@ executable as a combination of the two object files.
 In the final executable, the placeholder for `util` is filled in
 with the address where the definition of `util` is found in the
 executable.
+
+### the `extern` keyword
+
+`extern` is a C keyword.
+
+In general, for some symbol named `util`, `extern` says:
+
+- I use `util` in this file, `main.c`
+- here is the datatype of `util`
+- the definition of `util` is in another file
+- build the object file, `main.o`, without the definition
+- during linking, I will provide the object file that has the
+  definition
+
+For variables and function pointers, a C statement without an
+assignment could be a declaration or a definition. The `extern`
+is necessary to remove this ambiguity. Without the `extern`,
+there is a `multiple definition` error during linking.
+
+But a C statement containing only the function signature is
+unambiguous; it is a declaration.
+
+All that's necessary to declare a function is the function
+signature:
+
+```c
+int util(int input);
+```
+
+The function declaration gives the compiler just enough
+information about `util` to generate the placeholder in the
+`main.o` object file:
+
+- argument datatypes
+- return value datatype
+
 
 ## Build with a dependency
 
@@ -452,12 +513,12 @@ hello:
 	echo Hello
 ```
 
-* `hello:` is the *target*
-* `echo Hello` is a *recipe*
-** each recipe must be indented with a tab
-** Vim automatically uses tabs when `filetype=make`
-*** Vim recognizes files named `Makefile` are a Makefile
-*** or do `:set ft=make` to switch to Makefile formatting
+- `hello:` is the *target*
+- `echo Hello` is a *recipe*
+    - each recipe must be indented with a tab
+    - Vim automatically uses tabs when `filetype=make`
+        - Vim recognizes files named `Makefile` are a Makefile
+        - or do `:set ft=make` to switch to Makefile formatting
 
 Build a target with the syntax `make target-name`. From bash:
 
@@ -788,6 +849,8 @@ Note that `make` only:
 `make` **does not** recompile `util.o` because `util.c` did not
 change.
 
+### Put object files in the build folder
+
 The downside to relying on the implicit recipe for making object
 files from source code is that the object files `main.o` and
 `util.o` are placed in the `src` folder. It is cleaner to place
@@ -819,8 +882,8 @@ build/util.o: src/util.c
 	cc -c -o build/util.o src/util.c
 ```
 
-//Note the recipes for building object files requires flag `-c`
-to tell gcc to stop after compiling, do not run the linker.//
+*Note the recipes for building object files requires flag `-c`
+to tell gcc to stop after compiling, do not run the linker.*
 
 And build:
 
@@ -831,8 +894,13 @@ cc -c -o build/util.o src/util.c
 cc -o build/exe build/main.o build/util.o
 ```
 
+### Pattern rules using automatic variables
+
 The repetition is tedious to read and hideous to maintain.
-Replace it with a pattern rule using `%` as the stem:
+
+- Replace the `build/main.o` and `build/util.o` targets with a
+  pattern rule using `%` as the stem.
+- Change the recipe to use automatic variables `$@` and `$^`.
 
 ```make
 build/exe: build/main.o build/util.o
@@ -843,18 +911,26 @@ build/%.o: src/%.c
 ```
 
 Variables in `make` start with `$`. The variables `$@` and `$^`
-are *automatic variables*. These are built-in variables:
+are a special built-in type of variable called *automatic
+variables*. Here are the three most common automatic variables:
 
 * `$@` is the target
 * `$^` is all prerequisites, space separated
 * `$<` is just the first prerequisite
 
-If the variable is more than one character, it is enclosed in
-parentheses or curly braces, for example, `$(myvar)` or
-`${myvar}`. By convention, user-defined variables also use
-parentheses, even if they are just one character.
+### User-defined variables
 
-The build behaves the same:
+A common user-defined variable is `CFLAGS` for listing all the
+compiler flags. Calling it `CFLAGS` is just a convention.
+
+If the variable is more than one character, it is enclosed in
+parentheses `$(CFLAGS)` or curly braces `${CFLAGS}`. By
+convention, user-defined variables also use parentheses, even if
+they are just one character.
+
+### Build with automatic variables
+
+As expected, the build behaves exactly the same as before:
 
 ```bash
 $ touch src/main.c
@@ -864,6 +940,11 @@ cc -c -o build/main.o src/main.c
 cc -c -o build/util.o src/util.c
 cc -o build/exe build/main.o build/util.o
 ```
+
+Check the recipes are correct *before* actually building by
+running `make` with the `-n` flag. `make -n` shows what make will
+do without actually doing it. So it prints all the recipes with
+the variables expanded.
 
 ## Third Makefile
 
